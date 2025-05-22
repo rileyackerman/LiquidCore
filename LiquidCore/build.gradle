@@ -2,6 +2,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'maven-publish'
 
 import groovy.json.JsonSlurper
+import org.gradle.api.attributes.Usage
 
 def getVersionFromNpm() {
     def inputFile = file("../package.json")
@@ -21,16 +22,23 @@ static def getVersionCode(vn) {
 }
 
 android {
-    compileSdkVersion 28
-
+    compileSdkVersion 34
+    namespace 'org.liquidplayer.node'
+    ndkVersion "21.4.7075529"
+    
+    buildFeatures {
+        buildConfig true
+    }
 
     defaultConfig {
-        minSdkVersion 16
-        targetSdkVersion 28
+        minSdkVersion 21
+        targetSdkVersion 34
         versionName getVersionFromNpm()
         versionCode = getVersionCode(versionName)
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        
+        buildConfigField "String", "VERSION_NAME", "\"${versionName}\""
 
         externalNativeBuild {
             cmake {
@@ -82,7 +90,7 @@ dependencies {
     implementation 'androidx.annotation:annotation:1.1.0'
     implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation 'androidx.annotation:annotation:1.1.0'
-    liquidjs project(configuration: 'default', path: ':liquidcore-V8')
+    liquidjs files('../LiquidV8/build/outputs/aar/liquidcore-V8-release.aar')
     implementation project(path: ':liquidcore-V8')
     debugImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.2.0'
@@ -113,9 +121,9 @@ afterEvaluate {
 }
 
 task copyHeadersToAARRelease(type: Zip) {
-    baseName = 'liquidcore-Nodejs-release'
-    extension = 'aar.in'
-    destinationDir = file('build/outputs/aar')
+    archiveBaseName = 'liquidcore-Nodejs-release'
+    archiveExtension = 'aar.in'
+    destinationDirectory = file('build/outputs/aar')
     def aarNameO = "build/outputs/aar/liquidcore-Nodejs-release.aar"
 
     from zipTree(aarNameO)

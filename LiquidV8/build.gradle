@@ -21,12 +21,13 @@ static def getVersionCode(vn) {
 }
 
 android {
-    compileSdkVersion 28
-
+    compileSdkVersion 34
+    namespace 'org.liquidplayer.javascript'
+    ndkVersion "21.4.7075529"
 
     defaultConfig {
-        minSdkVersion 16
-        targetSdkVersion 28
+        minSdkVersion 21
+        targetSdkVersion 34
         versionName getVersionFromNpm()
         versionCode = getVersionCode(versionName)
 
@@ -73,9 +74,9 @@ dependencies {
 }
 
 task copyHeadersToAARRelease(type: Zip) {
-    baseName = 'liquidcore-V8-release'
-    extension = 'aar.in'
-    destinationDir = file('build/outputs/aar')
+    archiveBaseName = 'liquidcore-V8-release'
+    archiveExtension = 'aar.in'
+    destinationDirectory = file('build/outputs/aar')
     def aarNameO = "build/outputs/aar/liquidcore-V8-release.aar"
 
     from zipTree(aarNameO)
