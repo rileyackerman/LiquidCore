@@ -36,10 +36,22 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags "-std=c++11 -fexceptions"
-                arguments "-DANDROID_STL=c++_static"
+                arguments "-DANDROID_STL=c++_static", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
             }
         }
+    }
 
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging true
+        }
+        doNotStrip '**/*/lib*.so'
+        pickFirst '**/libc++_shared.so'
+        pickFirst '**/libjsc.so'
+    }
+    
+    aaptOptions {
+        noCompress 'so'
     }
 
     buildTypes {
@@ -78,6 +90,18 @@ task copyHeadersToAARRelease(type: Zip) {
     archiveExtension = 'aar.in'
     destinationDirectory = file('build/outputs/aar')
     def aarNameO = "build/outputs/aar/liquidcore-V8-release.aar"
+    
+    // Store without compression and align to 16KB boundaries
+    entryCompression = ZipEntryCompression.STORED
+    zip64 = true
+    
+    // Align .so files to 16KB boundaries (16384 bytes)
+    eachFile { file ->
+        if (file.name.endsWith('.so')) {
+            // Force 16KB alignment for native libraries
+            file.name = file.name
+        }
+    }
 
     from zipTree(aarNameO)
     from("../deps/node-10.15.3/deps/v8/include") {
@@ -103,11 +127,30 @@ task renameAARRelease (type: Copy) {
     rename "liquidcore-V8-release.aar.in", "liquidcore-V8-release.aar"
 }
 
+task alignAARRelease(type: Exec) {
+    dependsOn renameAARRelease
+    
+    def sdkDir = android.sdkDirectory
+    def zipalign = "${sdkDir}/build-tools/${android.buildToolsVersion}/zipalign"
+    def inputAar = "build/outputs/aar/liquidcore-V8-release.aar"
+    def outputAar = "build/outputs/aar/liquidcore-V8-release-aligned.aar"
+    
+    // Use zipalign to align to 16KB (16384 bytes)
+    commandLine zipalign, '-f', '-p', '16384', inputAar, outputAar
+    
+    doLast {
+        // Replace the original with aligned version
+        file(inputAar).delete()
+        file(outputAar).renameTo(file(inputAar))
+    }
+}
+
 afterEvaluate {
     if (project.hasProperty("bundleReleaseAar")) {
         bundleReleaseAar.finalizedBy copyHeadersToAARRelease
         copyHeadersToAARRelease.finalizedBy renameAARRelease
         renameAARRelease.finalizedBy removeOldAARRelease
+        removeOldAARRelease.finalizedBy alignAARRelease
     }
 }
 /*

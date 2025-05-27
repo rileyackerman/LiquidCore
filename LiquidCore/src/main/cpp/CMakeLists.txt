@@ -970,4 +970,7 @@ set_target_properties(
 	${PROJECT_SOURCE_DIR}/../../../build/liquidjs_lib/jni/${ANDROID_ABI}/libliquidjs.so
 )
 
+# Add 16KB page size alignment for Android
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-z,max-page-size=16384")
+
 target_link_libraries( liquidnode liquidjs-lib ${z-lib} ${log-lib} )
